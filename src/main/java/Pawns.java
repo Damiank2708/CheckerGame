@@ -4,7 +4,7 @@ public class Pawns {
     public boolean isBlack;
     public boolean isWhite;
     public boolean isSuperWarrior;
-    public Point point;
+    public Point point;//column, row
 
     public Pawns(boolean isBlack, boolean isWhite, boolean isSuperWarrior, Point point){
         this.isBlack = isBlack;

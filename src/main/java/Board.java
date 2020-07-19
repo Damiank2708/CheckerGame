@@ -20,12 +20,10 @@ public class Board extends  Application{
 
         gameBoardController.preparePawnsInLogic();
 
-
         primaryStage.setTitle("Checker Game");
         primaryStage.setScene(gameBoardController.prepareScene());
         primaryStage.setResizable(false);
         primaryStage.show();
-
 
     }
 
