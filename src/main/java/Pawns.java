@@ -36,4 +36,10 @@ public class Pawns {
     public void setPoint(Point point) {
         this.point = point;
     }
+
+    @Override
+    public boolean equals(Object obj) {
+        Pawns pawns = (Pawns) obj;
+        return pawns.getPoint().equals(this.getPoint());
+    }
 }

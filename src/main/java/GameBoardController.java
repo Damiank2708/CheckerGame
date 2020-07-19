@@ -182,7 +182,7 @@ public class GameBoardController {
     public void preparePawnsInLogic(){
 
         Pawns p1 = new Pawns(false, true, false, new Point(1,0));
-        gameLogic.addPanwToMap(new Point(1,0), p1);
+        gameLogic.addPawnToMap(new Point(1,0), p1);
     }
 
 }
