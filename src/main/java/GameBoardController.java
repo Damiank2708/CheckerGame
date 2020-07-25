@@ -1,3 +1,4 @@
+import javafx.event.Event;
 import javafx.event.EventHandler;
 import javafx.geometry.Insets;
 import javafx.scene.Node;
@@ -8,6 +9,7 @@ import javafx.scene.input.*;
 import javafx.scene.layout.*;
 
 import java.awt.*;
+import java.util.LinkedList;
 
 public class GameBoardController {
 
@@ -116,11 +118,15 @@ public class GameBoardController {
 
         gridPane.setOnDragDetected((MouseEvent event) -> {
             try{
-                ImageView imageView = (ImageView)event.getTarget();
-                Dragboard db = imageView.startDragAndDrop(TransferMode.ANY);
-                ClipboardContent content = new ClipboardContent();
-                content.putImage(imageView.getImage());
-                db.setContent(content);
+
+                Point targetPoint = getTargetPointFromNode((Node) event.getTarget());
+                if(checkTargetIsPawn(targetPoint)) {
+                    ImageView imageView = (ImageView) event.getTarget();
+                    Dragboard db = imageView.startDragAndDrop(TransferMode.ANY);
+                    ClipboardContent content = new ClipboardContent();
+                    content.putImage(imageView.getImage());
+                    db.setContent(content);
+                }
             }
             catch(Exception e){
                 ;
@@ -130,13 +136,11 @@ public class GameBoardController {
             }
         });
 
-        gridPane.setOnDragOver(new EventHandler<DragEvent>() {
+
+        gridPane.setOnDragOver (new EventHandler<DragEvent>() {
             public void handle(DragEvent event) {
                 try {
-                    ImageView imageView = (ImageView)event.getTarget();
-                    if (imageView != null) {
-                        event.acceptTransferModes(TransferMode.ANY);
-                    }
+                    event.acceptTransferModes(TransferMode.ANY);
                 }
                 catch(Exception e){
                     ;
@@ -151,19 +155,19 @@ public class GameBoardController {
             public void handle(DragEvent event) {
                 try{
                     Dragboard db = event.getDragboard();
-                    if(db.hasContent(DataFormat.IMAGE)){
-                        Node node = (Node) event.getTarget();
-                        Integer cIndex = GridPane.getColumnIndex(node);
-                        Integer rIndex = GridPane.getRowIndex(node);
-                        ImageView imageView = new ImageView((Image) db.getContent(DataFormat.IMAGE));
-                        gridPane.add(imageView,cIndex,rIndex);
-                        node = (Node) event.getGestureSource();
-                        cIndex = GridPane.getColumnIndex(node);
-                        rIndex = GridPane.getRowIndex(node);
-                        gridPane.getChildren().remove(node);
-                        gridPane.add(new ImageView(greenBackgroundImage), cIndex, rIndex);
+                    Point destPoint = getTargetPointFromNode((Node) event.getTarget());
+                    Point sourcePoint = getTargetPointFromNode((Node) event.getGestureSource());
+                    if(db.hasContent(DataFormat.IMAGE) && gameLogic.isAvaibleMove(sourcePoint,destPoint) ) {
+                        Node nodeTarget = (Node) event.getTarget();
+                        setImagePawnOnField(nodeTarget, db);
+
+                        Node nodeSource = (Node) event.getGestureSource();
+                        setImageFieldEmptyByNode(nodeSource);
+
+                        gameLogic.changePointOfPawnOnMapAndObjectInLogic(getTargetPointFromNode(nodeSource),
+                                                                         getTargetPointFromNode(nodeTarget));
                         event.setDropCompleted(true);
-                    }
+                     }
                 }
                 catch(Exception e){
                     ;
@@ -175,14 +179,90 @@ public class GameBoardController {
         });
     }
 
+    private Boolean checkTargetIsPawn(Point target){
+        return gameLogic.getAllPawnsPointList().contains(target);
+    }
+
     public Scene prepareScene(){
         return new Scene(gridPane, 600, 600);
     }
 
+    private void setImageFieldEmptyByNode(Node node){
+        int cIndex = GridPane.getColumnIndex(node);
+        int rIndex = GridPane.getRowIndex(node);
+        gridPane.getChildren().remove(node);
+        gridPane.add(new ImageView(greenBackgroundImage), cIndex, rIndex);
+    }
+
+    private void setImagePawnOnField(Node node, Dragboard db){
+        int cIndex = GridPane.getColumnIndex(node);
+        int rIndex = GridPane.getRowIndex(node);
+        ImageView imageView = new ImageView((Image) db.getContent(DataFormat.IMAGE));
+        gridPane.add(imageView,cIndex,rIndex);
+    }
+
+    private Point getTargetPointFromNode(Node node){
+        int cIndex = GridPane.getColumnIndex(node);
+        int rIndex = GridPane.getRowIndex(node);
+        return new Point(cIndex, rIndex);
+    }
+
+
     public void preparePawnsInLogic(){
 
-        Pawns p1 = new Pawns(false, true, false, new Point(1,0));
-        gameLogic.addPawnToMap(new Point(1,0), p1);
+        Pawns w1 = new Pawns(false, true, false, new Point(1,0));
+        gameLogic.addPawnToMap(w1.getPoint(), w1);
+        Pawns w2 = new Pawns(false, true, false, new Point(3,0));
+        gameLogic.addPawnToMap(w2.getPoint(), w2);
+        Pawns w3 = new Pawns(false, true, false, new Point(5,0));
+        gameLogic.addPawnToMap(w3.getPoint(), w3);
+        Pawns w4 = new Pawns(false, true, false, new Point(7,0));
+        gameLogic.addPawnToMap(w4.getPoint(), w4);
+
+        Pawns w5 = new Pawns(false, true, false, new Point(0,1));
+        gameLogic.addPawnToMap(new Point(0,1), w5);
+        Pawns w6 = new Pawns(false, true, false, new Point(2,1));
+        gameLogic.addPawnToMap(new Point(2,1), w6);
+        Pawns w7 = new Pawns(false, true, false, new Point(4,1));
+        gameLogic.addPawnToMap(new Point(4,1), w7);
+        Pawns w8 = new Pawns(false, true, false, new Point(6,1));
+        gameLogic.addPawnToMap(new Point(6,1), w8);
+
+        Pawns w9 = new Pawns(false, true, false, new Point(1,2));
+        gameLogic.addPawnToMap(new Point(1,2), w9);
+        Pawns w10 = new Pawns(false, true, false, new Point(3,2));
+        gameLogic.addPawnToMap(new Point(3,2), w10);
+        Pawns w11 = new Pawns(false, true, false, new Point(5,2));
+        gameLogic.addPawnToMap(new Point(5,2), w11);
+        Pawns w12 = new Pawns(false, true, false, new Point(7,2));
+        gameLogic.addPawnToMap(new Point(7,2), w12);
+
+        Pawns b1 = new Pawns(true, false, false, new Point(0,5));
+        gameLogic.addPawnToMap(new Point(0,5), b1);
+        Pawns b2 = new Pawns(true, false, false, new Point(2,5));
+        gameLogic.addPawnToMap(new Point(2,5), b2);
+        Pawns b3 = new Pawns(true, false, false, new Point(4,5));
+        gameLogic.addPawnToMap(new Point(4,5), b3);
+        Pawns b4 = new Pawns(true, false, false, new Point(6,5));
+        gameLogic.addPawnToMap(new Point(6,5), b4);
+
+        Pawns b5 = new Pawns(true, false, false, new Point(1,6));
+        gameLogic.addPawnToMap(new Point(1,6), b5);
+        Pawns b6 = new Pawns(true, false, false, new Point(3,6));
+        gameLogic.addPawnToMap(new Point(3,6), b6);
+        Pawns b7 = new Pawns(true, false, false, new Point(5,6));
+        gameLogic.addPawnToMap(new Point(5,6), b7);
+        Pawns b8 = new Pawns(true, false, false, new Point(7,6));
+        gameLogic.addPawnToMap(new Point(7,6), b8);
+
+        Pawns b9 = new Pawns(true, false, false, new Point(0,7));
+        gameLogic.addPawnToMap(new Point(0,7), b9);
+        Pawns b10 = new Pawns(true, false, false, new Point(2,7));
+        gameLogic.addPawnToMap(new Point(2,7), b10);
+        Pawns b11 = new Pawns(true, false, false, new Point(4,7));
+        gameLogic.addPawnToMap(new Point(4,7), b11);
+        Pawns b12 = new Pawns(true, false, false, new Point(6,7));
+        gameLogic.addPawnToMap(new Point(6,7), b12);
     }
 
 }

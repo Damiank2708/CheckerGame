@@ -56,21 +56,47 @@ public class GameLogic {
         pawnsHashMap.put(point,pawns);
     }
 
-    public Pawns getPawnByPoint(int column, int row){
-        Point point = new Point(column, row);
+    public Pawns getPawnByPointFromMap(Point point){
         return pawnsHashMap.get(point);
     }
 
-    public LinkedList<Point> getAvaibleMovesListForPawn(Pawns pawns) {
+    public void changePointOfPawnOnMapAndObjectInLogic(Point oldPoint, Point newPoint){
+        Pawns pawn = getPawnByPointFromMap(oldPoint);
+        pawnsHashMap.put(newPoint,pawnsHashMap.remove(oldPoint));
+        pawn.setPoint(newPoint);
+    }
+
+    public Boolean isAvaibleMove(Point oldPoint, Point newPoint){
+        Pawns pawns = getPawnByPointFromMap(oldPoint);
+        LinkedList<Point> avaibleMovesListForPawn = getAvaibleMovesListForPawn(pawns);
+        boolean isOk = false;
+        for (Point pointAvaible:  avaibleMovesListForPawn) {
+            isOk = false;
+            if (newPoint.equals(pointAvaible)) {
+                isOk = true;
+                break;
+            }
+        }
+        return isOk;
+    }
+
+    public LinkedList<Point> getAvaibleMovesListForPawn(Pawns pawn) {
         LinkedList<Point>  allPawnsPointList = getAllPawnsPointList();
-
-          return getAllFreeFieldsList(allPawnsPointList).stream()
-                                  .filter(t -> (t.getX() == pawns.getPoint().getX() + 1) ||
-                                               (t.getX() == pawns.getPoint().getX() - 1))
-                                  .filter(t -> (t.getY() == pawns.getPoint().getY() + 1) ||
-                                               (t.getY() == pawns.getPoint().getY() - 1))
-                                  .collect(Collectors.toCollection(LinkedList::new));
-
+          if ( pawn.isWhite() ) {
+              return getAllFreeFieldsList(allPawnsPointList).stream()
+                      .filter(t -> (t.getX() == pawn.getPoint().getX() + 1 ) ||
+                                   (t.getX() == pawn.getPoint().getX() - 1 ))
+                      .filter(t -> (t.getY() == pawn.getPoint().getY() + 1))
+                      .collect(Collectors.toCollection(LinkedList::new));
+          }
+          else if( pawn.isBlack()){
+              return getAllFreeFieldsList(allPawnsPointList).stream()
+                      .filter(t -> (t.getX() == pawn.getPoint().getX() - 1)||
+                                   (t.getX() == pawn.getPoint().getX() + 1  ) )
+                      .filter(t -> (t.getY() == pawn.getPoint().getY() - 1))
+                      .collect(Collectors.toCollection(LinkedList::new));
+          }
+          return new LinkedList<>();
         }
 
         public LinkedList<Point>  getAllPawnsPointList(){

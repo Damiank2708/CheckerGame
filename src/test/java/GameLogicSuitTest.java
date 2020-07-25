@@ -66,13 +66,13 @@ public class GameLogicSuitTest {
         Pawns b12 = new Pawns(false, true, false, new Point(6,7));
         gameLogic.addPawnToMap(new Point(6,7), b12);
 
-        Assert.assertEquals(w9, gameLogic.getPawnByPoint(1,2));
+        Assert.assertEquals(w9, gameLogic.getPawnByPointFromMap(new Point( 1,2)));
 
     }
     @Test
     public void testSettingPawnAndAvaibleMovesListForHim(){
         LinkedList<Point>  avaibleMovesList = new LinkedList<Point>();
-        Pawns w1 = gameLogic.getPawnByPoint(7,2);
+        Pawns w1 = gameLogic.getPawnByPointFromMap(new Point (7,2));
         Assert.assertEquals(true, w1.isWhite);
         Assert.assertEquals(false, w1.isBlack());
         Assert.assertEquals(false, w1.isSuperWarrior());
