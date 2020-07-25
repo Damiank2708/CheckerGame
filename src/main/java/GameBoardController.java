@@ -1,3 +1,4 @@
+import javafx.collections.ObservableList;
 import javafx.event.Event;
 import javafx.event.EventHandler;
 import javafx.geometry.Insets;
@@ -38,7 +39,7 @@ public class GameBoardController {
         gridPane.setHgap(1);
         gridPane.setVgap(1);
         gridPane.setGridLinesVisible(true);
-        gridPane.setPadding(new Insets(0, 2, 2, 3));
+        gridPane.setPadding(new Insets(0, 0, 0, 0));
     }
 
     public void preparePawnsOnBoard(){
@@ -192,6 +193,15 @@ public class GameBoardController {
         int rIndex = GridPane.getRowIndex(node);
         gridPane.getChildren().remove(node);
         gridPane.add(new ImageView(greenBackgroundImage), cIndex, rIndex);
+    }
+
+
+    private void setImageFieldEmptyByFieldListPointToClear(){
+        if(gameLogic.fieldListPointToClear.size() >0){
+            for (Point p: gameLogic.fieldListPointToClear) {
+               //TODO get node and setImageFieldEmptyByNode on this.
+            }
+        }
     }
 
     private void setImagePawnOnField(Node node, Dragboard db){

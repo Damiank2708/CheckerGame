@@ -8,6 +8,8 @@ import java.util.stream.Collectors;
 public class GameLogic {
     private final HashMap<Point, Pawns> pawnsHashMap = new HashMap<>();
     private final LinkedList<Point> allAvaibleFieldToMovesList = new LinkedList<>();
+    public final LinkedList<Point> fieldListPointToClear = new LinkedList<>();
+    private int QuantitiOfFieldsBetween;
 
     public  GameLogic(){
         allAvaibleFieldToMovesList.add( new Point(1,0) );
@@ -49,7 +51,6 @@ public class GameLogic {
         allAvaibleFieldToMovesList.add( new Point(2,7) );
         allAvaibleFieldToMovesList.add( new Point(4,7) );
         allAvaibleFieldToMovesList.add( new Point(6,7) );
-
     }
 
     public void addPawnToMap(Point point, Pawns pawns){
@@ -68,6 +69,15 @@ public class GameLogic {
 
     public Boolean isAvaibleMove(Point oldPoint, Point newPoint){
         Pawns pawns = getPawnByPointFromMap(oldPoint);
+        LinkedList<Pawns> pawnsListListBetweenPoints = getPawnsListBetweenPoints(oldPoint, newPoint);
+        boolean isOkAttack = false;
+        if(pawnsListListBetweenPoints.size() == 1){
+            if (pawnsListListBetweenPoints.get(0).isBlack != pawns.isBlack){
+                fieldListPointToClear.add(pawnsListListBetweenPoints.getFirst().point);
+                isOkAttack = true;
+            }
+        }
+
         LinkedList<Point> avaibleMovesListForPawn = getAvaibleMovesListForPawn(pawns);
         boolean isOk = false;
         for (Point pointAvaible:  avaibleMovesListForPawn) {
@@ -77,19 +87,23 @@ public class GameLogic {
                 break;
             }
         }
-        return isOk;
+        if(QuantitiOfFieldsBetween > 1 && !pawns.isSuperWarrior){
+            isOk = false;
+            isOkAttack = false;
+        }
+        return isOk||isOkAttack;
     }
 
     public LinkedList<Point> getAvaibleMovesListForPawn(Pawns pawn) {
         LinkedList<Point>  allPawnsPointList = getAllPawnsPointList();
-          if ( pawn.isWhite() ) {
+          if ( pawn.isWhite() && !pawn.isSuperWarrior ) {
               return getAllFreeFieldsList(allPawnsPointList).stream()
                       .filter(t -> (t.getX() == pawn.getPoint().getX() + 1 ) ||
                                    (t.getX() == pawn.getPoint().getX() - 1 ))
                       .filter(t -> (t.getY() == pawn.getPoint().getY() + 1))
                       .collect(Collectors.toCollection(LinkedList::new));
           }
-          else if( pawn.isBlack()){
+          else if( pawn.isBlack() && !pawn.isSuperWarrior){
               return getAllFreeFieldsList(allPawnsPointList).stream()
                       .filter(t -> (t.getX() == pawn.getPoint().getX() - 1)||
                                    (t.getX() == pawn.getPoint().getX() + 1  ) )
@@ -109,22 +123,78 @@ public class GameLogic {
         private LinkedList<Point> getAllFreeFieldsList(LinkedList<Point> allPawnsPointList){
             LinkedList<Point>  allFreeFieldsList = new LinkedList<>();
             for (Point pointAvaible:  allAvaibleFieldToMovesList) {
-
                 boolean isOccupied = false;
-
                 for(Point pointOccupied: allPawnsPointList){
                     if(pointAvaible.equals(pointOccupied)) {
                         isOccupied = true;
                         break;
                     }
                 }
-
                 if(! isOccupied){
                     allFreeFieldsList.add(pointAvaible);
                 }
             }
             return  allFreeFieldsList;
         }
+
+    private LinkedList<Pawns> getPawnsListBetweenPoints(Point oldPoint, Point newPoint){
+        LinkedList<Pawns>  pawnsListBetweenPoints = new LinkedList<>();
+        QuantitiOfFieldsBetween = -1;
+        if(getPawnByPointFromMap(newPoint) != null){
+            return pawnsListBetweenPoints;
+        }
+        int column = oldPoint.x;
+        int row = oldPoint.y;
+        if(oldPoint.x > newPoint.x && oldPoint.y > newPoint.y){
+            while (column != newPoint.x && row != newPoint.y ){
+                column--;
+                row--;
+                QuantitiOfFieldsBetween++;
+               Pawns pawn = getPawnByPointFromMap(new Point(column, row));
+               if(pawn != null){
+                  pawnsListBetweenPoints.add(pawn);
+               }
+            }
+        }
+        else if(oldPoint.x > newPoint.x && oldPoint.y < newPoint.y ){
+            while (column != newPoint.x && row != newPoint.y ){
+                column--;
+                row++;
+                QuantitiOfFieldsBetween++;
+                Pawns pawn = getPawnByPointFromMap(new Point(column, row));
+                if(pawn != null){
+                    pawnsListBetweenPoints.add(pawn);
+                }
+            }
+        }
+        else if(oldPoint.x < newPoint.x && oldPoint.y < newPoint.y  ){
+            while (column != newPoint.x && row != newPoint.y ){
+                column++;
+                row++;
+                QuantitiOfFieldsBetween++;
+                Pawns pawn = getPawnByPointFromMap(new Point(column, row));
+                if(pawn != null){
+                    pawnsListBetweenPoints.add(pawn);
+                }
+            }
+        }
+        else if(oldPoint.x < newPoint.x && oldPoint.y > newPoint.y  ){
+            while (column != newPoint.x && row != newPoint.y ){
+                column++;
+                row--;
+                QuantitiOfFieldsBetween++;
+                Pawns pawn = getPawnByPointFromMap(new Point(column, row));
+                if(pawn != null){
+                    pawnsListBetweenPoints.add(pawn);
+                }
+            }
+        }
+        return pawnsListBetweenPoints;
+    }
+
+
+
+
 
 
     }
