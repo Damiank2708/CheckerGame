@@ -20,15 +20,21 @@ public class GameBoardController {
     private Image imageBoard= new Image("/board.png");
     private Image whitePawnImage = new Image("/WhitePawn.png", 75, 75,false, false);
     private Image blackPawnImage = new Image("/blackPawn.png", 75, 75,false, false);
+    private Image superWhitePawnImage = new Image("/superWhitePawn.png", 75, 75,false, false);
+    private Image superBlackPawnImage = new Image("/superblackPawn.png", 75, 75,false, false);
     private Image greenBackgroundImage = new Image("/GreenBackgroundImage.png", 75, 75,false, false);
     private Image emptyImage = new Image("/EmptyImage.png", 75, 75,false, false);
     private Background background;
     private GridPane gridPane;
     private GameLogic gameLogic;
+    private QueueController queueController;
+    public ComputerPlayerController computerPlayerController;
 
     public GameBoardController(GameLogic gameLogic){
         gridPane = new GridPane();
         this.gameLogic = gameLogic;
+        this.queueController = new QueueController();
+        this.computerPlayerController = new ComputerPlayerController(gameLogic, this);
     }
 
     public void prepareBackGround(){
@@ -41,7 +47,7 @@ public class GameBoardController {
         gridPane.setBackground(background);
         gridPane.setHgap(1);
         gridPane.setVgap(1);
-        gridPane.setGridLinesVisible(true);
+        gridPane.setGridLinesVisible(false);
         gridPane.setPadding(new Insets(0, 0, 0, 0));
     }
 
@@ -124,7 +130,8 @@ public class GameBoardController {
             try{
 
                 Point targetPoint = getTargetPointFromNode((Node) event.getTarget());
-                if(checkTargetIsPawn(targetPoint)) {
+                if(checkTargetIsPawn(targetPoint)
+                   & queueController.checkColorPawnDragAndCompareWithCurrentPlayer(queueController.getColorByPoint(targetPoint,gameLogic))) {
                     ImageView imageView = (ImageView) event.getTarget();
                     Dragboard db = imageView.startDragAndDrop(TransferMode.ANY);
                     ClipboardContent content = new ClipboardContent();
@@ -133,7 +140,6 @@ public class GameBoardController {
                 }
             }
             catch(Exception e){
-                ;
             }
             finally {
                 event.consume();
@@ -155,33 +161,48 @@ public class GameBoardController {
             }
         });
 
-        gridPane.setOnDragDropped(new EventHandler<DragEvent>()  {
-            public void handle(DragEvent event) {
-                try{
-                    Dragboard db = event.getDragboard();
-                    Point destPoint = getTargetPointFromNode((Node) event.getTarget());
-                    Point sourcePoint = getTargetPointFromNode((Node) event.getGestureSource());
-                    if(db.hasContent(DataFormat.IMAGE) && gameLogic.isAvaibleMove(sourcePoint,destPoint, false) ) {
-                        if(! gameLogic.isAvaibleAnyAttack(sourcePoint)) {
-                            Node nodeTarget = (Node) event.getTarget();
-                            setImagePawnOnField(nodeTarget, db);
+        gridPane.setOnDragDropped(event -> {
+            try{
+                Dragboard db = event.getDragboard();
+                Point destPoint = getTargetPointFromNode((Node) event.getTarget());
+                Point sourcePoint = getTargetPointFromNode((Node) event.getGestureSource());
+                if(db.hasContent(DataFormat.IMAGE) && gameLogic.isAvaibleMove(sourcePoint,destPoint, false) ) {
+                    if(! gameLogic.isAvaibleAnyAttack(queueController.getCurrentPlayer())) {
 
-                            Node nodeSource = (Node) event.getGestureSource();
-                            setImageFieldEmptyByNode(nodeSource);
+                        Node nodeTarget = (Node) event.getTarget();
+                        setImagePawnOnField(nodeTarget, db);
 
-                            gameLogic.changePointOfPawnOnMapAndObjectInLogic(getTargetPointFromNode(nodeSource),
-                                    getTargetPointFromNode(nodeTarget));
-                            setImageFieldEmptyByFieldListPointToClear();
-                            event.setDropCompleted(true);
+                        Node nodeSource = (Node) event.getGestureSource();
+                        setImageFieldEmptyByNode(nodeSource);
+
+                        gameLogic.changePointOfPawnOnMapAndObjectInLogic(sourcePoint,destPoint);
+                        if ( gameLogic.transformPawnToSuperWarriorIfIsTime(destPoint) ){
+                            transformToSuperWarrior(destPoint);
                         }
-                     }
-                }
-                catch(Exception e){
-                    System.out.println(e.getMessage());
-                }
-                finally {
-                    event.consume();
-                }
+
+                        if(gameLogic.checkThatLastMoveWasAttack()){
+                            if(! gameLogic.isAvaibleAnyAttackForLastAttackerPawn(queueController.getCurrentPlayer(),
+                                 gameLogic.getPawnByPointFromMap(destPoint))){
+                              queueController.setNextPlayer();
+                            }
+                        }
+                        else{
+                            queueController.setNextPlayer();
+                        }
+                        setImageFieldEmptyByFieldListPointToClear();
+                        if(queueController.getCurrentPlayer().equals(QueueController.Player.WHITE)){
+                            computerPlayerController.Move();
+                            queueController.setNextPlayer();
+                        }
+                        event.setDropCompleted(true);
+                    }
+                 }
+            }
+            catch(Exception e){
+                System.out.println(e.getMessage());
+            }
+            finally {
+                event.consume();
             }
         });
     }
@@ -201,8 +222,20 @@ public class GameBoardController {
         gridPane.add(new ImageView(greenBackgroundImage), cIndex, rIndex);
     }
 
+    public void transformToSuperWarrior(Point point){
+        int cIndex = point.x;
+        int rIndex = point.y;
+        gameLogic.fieldListPointToClear.add(new Point(cIndex,rIndex));
+        setImageFieldEmptyByFieldListPointToClear();
+        if (gameLogic.getPawnByPointFromMap(point).isWhite()){
+          gridPane.add(new ImageView(superWhitePawnImage),cIndex,rIndex);
+        }
+        else{
+          gridPane.add(new ImageView(superBlackPawnImage),cIndex,rIndex);
+        }
 
-    private void setImageFieldEmptyByFieldListPointToClear(){
+    }
+    public void setImageFieldEmptyByFieldListPointToClear(){
         if(gameLogic.fieldListPointToClear.size() >0){
             for (Point p: gameLogic.fieldListPointToClear) {
                 for(Node n: getNodesByPoint(p.x,p.y)){
@@ -231,68 +264,32 @@ public class GameBoardController {
         gridPane.add(imageView,cIndex,rIndex);
     }
 
+    public void setImagePawnOnFieldByPoint(Point pointDest, QueueController.Player colorPlayer){
+        ImageView imageView;
+       Pawns pawn = gameLogic.getPawnByPointFromMap(pointDest);
+       if(colorPlayer.equals(QueueController.Player.WHITE)) {
+           if (pawn.isSuperWarrior()){
+               imageView = new ImageView(superWhitePawnImage);
+           }
+           else {
+               imageView = new ImageView(whitePawnImage);
+           }
+       }
+       else {
+           if (pawn.isSuperWarrior()){
+               imageView = new ImageView(superBlackPawnImage);
+           }
+           else {
+               imageView = new ImageView(blackPawnImage);
+           }
+       }
+        gridPane.add(imageView,pointDest.x,pointDest.y);
+    }
+
     private Point getTargetPointFromNode(Node node){
         int cIndex = GridPane.getColumnIndex(node);
         int rIndex = GridPane.getRowIndex(node);
         return new Point(cIndex, rIndex);
-    }
-
-
-    public void preparePawnsInLogic(){
-
-        Pawns w1 = new Pawns(false, true, false, new Point(1,0));
-        gameLogic.addPawnToMap(w1.getPoint(), w1);
-        Pawns w2 = new Pawns(false, true, false, new Point(3,0));
-        gameLogic.addPawnToMap(w2.getPoint(), w2);
-        Pawns w3 = new Pawns(false, true, false, new Point(5,0));
-        gameLogic.addPawnToMap(w3.getPoint(), w3);
-        Pawns w4 = new Pawns(false, true, false, new Point(7,0));
-        gameLogic.addPawnToMap(w4.getPoint(), w4);
-
-        Pawns w5 = new Pawns(false, true, false, new Point(0,1));
-        gameLogic.addPawnToMap(w5.getPoint(), w5);
-        Pawns w6 = new Pawns(false, true, false, new Point(2,1));
-        gameLogic.addPawnToMap(w6.getPoint(), w6);
-        Pawns w7 = new Pawns(false, true, false, new Point(4,1));
-        gameLogic.addPawnToMap(w7.getPoint(), w7);
-        Pawns w8 = new Pawns(false, true, false, new Point(6,1));
-        gameLogic.addPawnToMap(w8.getPoint(), w8);
-
-        Pawns w9 = new Pawns(false, true, false, new Point(1,2));
-        gameLogic.addPawnToMap(w9.getPoint(), w9);
-        Pawns w10 = new Pawns(false, true, false, new Point(3,2));
-        gameLogic.addPawnToMap(w10.getPoint(), w10);
-        Pawns w11 = new Pawns(false, true, false, new Point(5,2));
-        gameLogic.addPawnToMap(w11.getPoint(), w11);
-        Pawns w12 = new Pawns(false, true, false, new Point(7,2));
-        gameLogic.addPawnToMap(w12.getPoint(), w12);
-
-        Pawns b1 = new Pawns(true, false, false, new Point(0,5));
-        gameLogic.addPawnToMap(b1.getPoint(),b1);
-        Pawns b2 = new Pawns(true, false, false, new Point(2,5));
-        gameLogic.addPawnToMap(b2.getPoint(), b2);
-        Pawns b3 = new Pawns(true, false, false, new Point(4,5));
-        gameLogic.addPawnToMap(b3.getPoint(), b3);
-        Pawns b4 = new Pawns(true, false, false, new Point(6,5));
-        gameLogic.addPawnToMap(b4.getPoint(), b4);
-
-        Pawns b5 = new Pawns(true, false, false, new Point(1,6));
-        gameLogic.addPawnToMap(b5.getPoint(), b5);
-        Pawns b6 = new Pawns(true, false, false, new Point(3,6));
-        gameLogic.addPawnToMap(b6.getPoint(), b6);
-        Pawns b7 = new Pawns(true, false, false, new Point(5,6));
-        gameLogic.addPawnToMap(b7.getPoint(), b7);
-        Pawns b8 = new Pawns(true, false, false, new Point(7,6));
-        gameLogic.addPawnToMap(b8.getPoint(), b8);
-
-        Pawns b9 = new Pawns(true, false, false, new Point(0,7));
-        gameLogic.addPawnToMap(b9.getPoint(), b9);
-        Pawns b10 = new Pawns(true, false, false, new Point(2,7));
-        gameLogic.addPawnToMap(b10.getPoint(), b10);
-        Pawns b11 = new Pawns(true, false, false, new Point(4,7));
-        gameLogic.addPawnToMap(b11.getPoint(),b11);
-        Pawns b12 = new Pawns(true, false, false, new Point(6,7));
-        gameLogic.addPawnToMap(b12.getPoint(), b12);
     }
 
 }

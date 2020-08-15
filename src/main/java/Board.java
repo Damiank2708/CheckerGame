@@ -13,12 +13,13 @@ public class Board extends  Application{
 
         GameLogic gameLogic = new GameLogic();
         GameBoardController gameBoardController = new GameBoardController(gameLogic);
+
         gameBoardController.prepareBackGround();
         gameBoardController.prepareGridPane();
         gameBoardController.preparePawnsOnBoard();
         gameBoardController.prepareEventsOnGridPane();
-
-        gameBoardController.preparePawnsInLogic();
+        gameLogic.preparePawnsInLogic();
+        gameBoardController.computerPlayerController.Move();
 
         primaryStage.setTitle("Checker Game");
         primaryStage.setScene(gameBoardController.prepareScene());

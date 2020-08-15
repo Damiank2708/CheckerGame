@@ -1,11 +1,8 @@
-import javafx.scene.image.ImageView;
-
 import java.awt.*;
-import java.sql.SQLOutput;
 import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.Hashtable;
 import java.util.LinkedList;
-import java.util.Map;
 import java.util.stream.Collectors;
 import java.util.stream.IntStream;
 
@@ -17,45 +14,8 @@ public class GameLogic {
     private LinkedList<Pawns> pawnsListListBetweenPoints = new LinkedList<>();
 
     public  GameLogic(){
-        allAvaibleFieldToMovesList.add( new Point(1,0) );
-        allAvaibleFieldToMovesList.add( new Point(3,0) );
-        allAvaibleFieldToMovesList.add( new Point(5,0) );
-        allAvaibleFieldToMovesList.add( new Point(7,0) );
-
-        allAvaibleFieldToMovesList.add( new Point(0,1) );
-        allAvaibleFieldToMovesList.add( new Point(2,1) );
-        allAvaibleFieldToMovesList.add( new Point(4,1) );
-        allAvaibleFieldToMovesList.add( new Point(6,1) );
-
-        allAvaibleFieldToMovesList.add( new Point(1,2) );
-        allAvaibleFieldToMovesList.add( new Point(3,2) );
-        allAvaibleFieldToMovesList.add( new Point(5,2) );
-        allAvaibleFieldToMovesList.add( new Point(7,2) );
-
-        allAvaibleFieldToMovesList.add( new Point(0,3) );
-        allAvaibleFieldToMovesList.add( new Point(2,3) );
-        allAvaibleFieldToMovesList.add( new Point(4,3) );
-        allAvaibleFieldToMovesList.add( new Point(6,3) );
-
-        allAvaibleFieldToMovesList.add( new Point(1,4) );
-        allAvaibleFieldToMovesList.add( new Point(3,4) );
-        allAvaibleFieldToMovesList.add( new Point(5,4) );
-        allAvaibleFieldToMovesList.add( new Point(7,4) );
-
-        allAvaibleFieldToMovesList.add( new Point(0,5) );
-        allAvaibleFieldToMovesList.add( new Point(2,5) );
-        allAvaibleFieldToMovesList.add( new Point(4,5) );
-        allAvaibleFieldToMovesList.add( new Point(6,5) );
-
-        allAvaibleFieldToMovesList.add( new Point(1,6) );
-        allAvaibleFieldToMovesList.add( new Point(3,6) );
-        allAvaibleFieldToMovesList.add( new Point(5,6) );
-        allAvaibleFieldToMovesList.add( new Point(7,6) );
-
-        allAvaibleFieldToMovesList.add( new Point(0,7) );
-        allAvaibleFieldToMovesList.add( new Point(2,7) );
-        allAvaibleFieldToMovesList.add( new Point(4,7) );
-        allAvaibleFieldToMovesList.add( new Point(6,7) );
+       createAllAvaibleFieldToMovesList();
+       preparePawnsInLogic();
     }
 
     public void addPawnToMap(Point point, Pawns pawns){
@@ -104,13 +64,10 @@ public class GameLogic {
                 return false;
             }
             else if(QuantitiOfFieldsBetween == 0){
-                if(checkThatMoveIsToFrontDirect(oldPoint,newPoint, pawns) ){
-                    return true;
-                }
-                else{
-                    return false;
-                }
+                return checkThatMoveIsToFrontDirect(oldPoint, newPoint, pawns);
             }
+            else
+                return QuantitiOfFieldsBetween >= 0 && pawns.isSuperWarrior();
         }
         return false;
     }
@@ -129,6 +86,7 @@ public class GameLogic {
                 .map(s -> s.getValue().getPoint())
                 .collect(Collectors.toCollection(LinkedList::new));
     }
+
     public LinkedList<Point>  getAllBlackPawnsPointList(){
         return pawnsHashMap.entrySet()
                 .stream()
@@ -136,7 +94,8 @@ public class GameLogic {
                 .map(s -> s.getValue().getPoint())
                 .collect(Collectors.toCollection(LinkedList::new));
     }
-    private LinkedList<Point> getAllFreeFieldsList(LinkedList<Point> allPawnsPointList) {
+
+    public LinkedList<Point> getAllFreeFieldsList(LinkedList<Point> allPawnsPointList) {
         LinkedList<Point> allFreeFieldsList = new LinkedList<>();
         for (Point pointAvaible : allAvaibleFieldToMovesList) {
             if (getPawnByPointFromMap(pointAvaible) == null) {
@@ -278,10 +237,7 @@ public class GameLogic {
         int countOfDirect = (int) IntStream.range(0, arrayList.size())
                 .filter(n -> (n==0))
                 .count();
-        if (countOfDirect == 1){
-            return true;
-        }
-        return  false;
+        return countOfDirect == 1;
     }
 
     private int setQuantitiOfFieldsBetweenFromList(ArrayList<Integer> arrayList){
@@ -294,7 +250,6 @@ public class GameLogic {
       else{
           return 0;
       }
-
     }
 
     private boolean checkThatMoveIsToFrontDirect(Point oldPoint,Point newPoint, Pawns pawns){
@@ -313,12 +268,11 @@ public class GameLogic {
        return false;
     }
 
-    public boolean isAvaibleAnyAttack(Point oldPoint) {
-        if(pawnsListListBetweenPoints.size() != 0){
+    public boolean isAvaibleAnyAttack(QueueController.Player currentPlayer) {
+        if(pawnsListListBetweenPoints.size() > 1){
             return false;
         }
-        Pawns pawns = getPawnByPointFromMap(oldPoint);
-        if(pawns.isWhite()){
+        if(currentPlayer.equals(QueueController.Player.WHITE)){
             for (Point pointWhite: getAllWhitePawnsPointList()) {
                 for(Point pointDest: getAllFreeFieldsList(getAllPawnsPointList()))
                 if ( isAvaibleMove(pointWhite, pointDest, true ) ) {
@@ -328,12 +282,11 @@ public class GameLogic {
                 }
             }
         }
-        else if(pawns.isBlack()){
+        else if(currentPlayer.equals(QueueController.Player.BLACK)){
             for (Point pointBlack: getAllBlackPawnsPointList()) {
                 for(Point pointDest: getAllFreeFieldsList(getAllPawnsPointList()))
                     if ( isAvaibleMove(pointBlack, pointDest, true ) ) {
                         if (pawnsListListBetweenPoints.size() == 1) {
-                            System.out.println("Avaible AttackpointBlack: "+pointBlack+" pointDest:"+pointDest);
                             return true;
                         }
                     }
@@ -342,6 +295,217 @@ public class GameLogic {
         return false;
     }
 
+    public boolean isAvaibleAnyAttackForLastAttackerPawn(QueueController.Player currentPlayer, Pawns pawn) {
+        if(currentPlayer.equals(QueueController.Player.WHITE)){
+                for(Point pointDest: getAllFreeFieldsList(getAllPawnsPointList()))
+                    if ( isAvaibleMove(pawn.getPoint(), pointDest, true ) ) {
+                        if (pawnsListListBetweenPoints.size() == 1) {
+                            return true;
+                        }
+                    }
+        }
+        else if(currentPlayer.equals(QueueController.Player.BLACK)){
+                for(Point pointDest: getAllFreeFieldsList(getAllPawnsPointList()))
+                    if ( isAvaibleMove(pawn.getPoint(), pointDest, true ) ) {
+                        if (pawnsListListBetweenPoints.size() == 1) {
+                            return true;
+                        }
+                    }
+        }
+        return false;
+    }
+
+    public HashMap<String,Point> nextFromAndDestAvaibleAttack(QueueController.Player currentPlayer, Pawns pawn){
+        HashMap<String,Point> nextFromAndDestAvaibleAttackMap = new HashMap<>();
+        if(currentPlayer.equals(QueueController.Player.WHITE)){
+                for(Point pointDest: getAllFreeFieldsList(getAllPawnsPointList()))
+                    if ( isAvaibleMove(pawn.getPoint(), pointDest, true ) ) {
+                        if (pawnsListListBetweenPoints.size() == 1) {
+                            nextFromAndDestAvaibleAttackMap.put("FROM",pawn.getPoint());
+                            nextFromAndDestAvaibleAttackMap.put("DEST",pointDest);
+                            return nextFromAndDestAvaibleAttackMap;
+                        }
+                    }
+        }
+        else if(currentPlayer.equals(QueueController.Player.BLACK)){
+                for(Point pointDest: getAllFreeFieldsList(getAllPawnsPointList()))
+                    if ( isAvaibleMove(pawn.getPoint(), pointDest, true ) ) {
+                        if (pawnsListListBetweenPoints.size() == 1) {
+                            nextFromAndDestAvaibleAttackMap.put("FROM",pawn.getPoint());
+                            nextFromAndDestAvaibleAttackMap.put("DEST",pointDest);
+                            return nextFromAndDestAvaibleAttackMap;
+                        }
+                    }
+        }
+        return nextFromAndDestAvaibleAttackMap;
+    }
+
+    public HashMap<String,Point> getFromAndDestAvaibleAttack(QueueController.Player currentPlayer){
+        HashMap<String,Point> fromAndDestAvaibleAttackMap = new HashMap<>();
+        if(currentPlayer.equals(QueueController.Player.WHITE)){
+            for (Point pointWhite: getAllWhitePawnsPointList()) {
+                for(Point pointDest: getAllFreeFieldsList(getAllPawnsPointList()))
+                    if ( isAvaibleMove(pointWhite, pointDest, true ) ) {
+                        if (pawnsListListBetweenPoints.size() == 1) {
+                            fromAndDestAvaibleAttackMap.put("FROM",pointWhite);
+                            fromAndDestAvaibleAttackMap.put("DEST",pointDest);
+                            return fromAndDestAvaibleAttackMap;
+                        }
+                    }
+            }
+        }
+        else if(currentPlayer.equals(QueueController.Player.BLACK)){
+            for (Point pointBlack: getAllBlackPawnsPointList()) {
+                for(Point pointDest: getAllFreeFieldsList(getAllPawnsPointList()))
+                    if ( isAvaibleMove(pointBlack, pointDest, true ) ) {
+                        if (pawnsListListBetweenPoints.size() == 1) {
+                            fromAndDestAvaibleAttackMap.put("FROM",pointBlack);
+                            fromAndDestAvaibleAttackMap.put("DEST",pointDest);
+                            return fromAndDestAvaibleAttackMap;
+                        }
+                    }
+            }
+        }
+        return fromAndDestAvaibleAttackMap;
+    }
+
+
+    public boolean transformPawnToSuperWarriorIfIsTime(Point destPoint){
+        Pawns pawns = getPawnByPointFromMap(destPoint);
+        if(pawns.isBlack() && destPoint.getY() == 0 ){
+          pawns.setSuperWarrior(true);
+          return true;
+        }
+        else if(pawns.isWhite() && destPoint.getY() == 7 ) {
+          pawns.setSuperWarrior(true);
+          return true;
+        }
+        return false;
+    }
+
+    public boolean checkThatLastMoveWasAttack(){
+        return fieldListPointToClear.size() > 0;
+    }
+
+    public ArrayList<Pawns> getListOfPawnThatCanMove(QueueController.Player forColorPlayer){
+        ArrayList<Pawns> listOfPawnThatCanMove = new ArrayList<>();
+        if(forColorPlayer.equals(QueueController.Player.WHITE)){
+            for (Point pointWhite: getAllWhitePawnsPointList()) {
+                for(Point pointDest: getAllFreeFieldsList(getAllPawnsPointList()))
+                    if ( isAvaibleMove(pointWhite, pointDest, true ) ) {
+                       listOfPawnThatCanMove.add(getPawnByPointFromMap(pointWhite));
+                    }
+            }
+        }
+        else{
+            for (Point pointBlack: getAllBlackPawnsPointList()) {
+                for(Point pointDest: getAllFreeFieldsList(getAllPawnsPointList()))
+                    if ( isAvaibleMove(pointBlack, pointDest, true ) ) {
+                        listOfPawnThatCanMove.add(getPawnByPointFromMap(pointBlack));
+                    }
+            }
+        }
+        return listOfPawnThatCanMove;
+    }
+
+    public void createAllAvaibleFieldToMovesList(){
+        allAvaibleFieldToMovesList.add( new Point(1,0) );
+        allAvaibleFieldToMovesList.add( new Point(3,0) );
+        allAvaibleFieldToMovesList.add( new Point(5,0) );
+        allAvaibleFieldToMovesList.add( new Point(7,0) );
+
+        allAvaibleFieldToMovesList.add( new Point(0,1) );
+        allAvaibleFieldToMovesList.add( new Point(2,1) );
+        allAvaibleFieldToMovesList.add( new Point(4,1) );
+        allAvaibleFieldToMovesList.add( new Point(6,1) );
+
+        allAvaibleFieldToMovesList.add( new Point(1,2) );
+        allAvaibleFieldToMovesList.add( new Point(3,2) );
+        allAvaibleFieldToMovesList.add( new Point(5,2) );
+        allAvaibleFieldToMovesList.add( new Point(7,2) );
+
+        allAvaibleFieldToMovesList.add( new Point(0,3) );
+        allAvaibleFieldToMovesList.add( new Point(2,3) );
+        allAvaibleFieldToMovesList.add( new Point(4,3) );
+        allAvaibleFieldToMovesList.add( new Point(6,3) );
+
+        allAvaibleFieldToMovesList.add( new Point(1,4) );
+        allAvaibleFieldToMovesList.add( new Point(3,4) );
+        allAvaibleFieldToMovesList.add( new Point(5,4) );
+        allAvaibleFieldToMovesList.add( new Point(7,4) );
+
+        allAvaibleFieldToMovesList.add( new Point(0,5) );
+        allAvaibleFieldToMovesList.add( new Point(2,5) );
+        allAvaibleFieldToMovesList.add( new Point(4,5) );
+        allAvaibleFieldToMovesList.add( new Point(6,5) );
+
+        allAvaibleFieldToMovesList.add( new Point(1,6) );
+        allAvaibleFieldToMovesList.add( new Point(3,6) );
+        allAvaibleFieldToMovesList.add( new Point(5,6) );
+        allAvaibleFieldToMovesList.add( new Point(7,6) );
+
+        allAvaibleFieldToMovesList.add( new Point(0,7) );
+        allAvaibleFieldToMovesList.add( new Point(2,7) );
+        allAvaibleFieldToMovesList.add( new Point(4,7) );
+        allAvaibleFieldToMovesList.add( new Point(6,7) );
+    }
+
+    public void preparePawnsInLogic(){
+
+        Pawns w1 = new Pawns(false, true, false, new Point(1,0));
+        addPawnToMap(w1.getPoint(), w1);
+        Pawns w2 = new Pawns(false, true, false, new Point(3,0));
+        addPawnToMap(w2.getPoint(), w2);
+        Pawns w3 = new Pawns(false, true, false, new Point(5,0));
+        addPawnToMap(w3.getPoint(), w3);
+        Pawns w4 = new Pawns(false, true, false, new Point(7,0));
+        addPawnToMap(w4.getPoint(), w4);
+
+        Pawns w5 = new Pawns(false, true, false, new Point(0,1));
+        addPawnToMap(w5.getPoint(), w5);
+        Pawns w6 = new Pawns(false, true, false, new Point(2,1));
+        addPawnToMap(w6.getPoint(), w6);
+        Pawns w7 = new Pawns(false, true, false, new Point(4,1));
+        addPawnToMap(w7.getPoint(), w7);
+        Pawns w8 = new Pawns(false, true, false, new Point(6,1));
+        addPawnToMap(w8.getPoint(), w8);
+
+        Pawns w9 = new Pawns(false, true, false, new Point(1,2));
+        addPawnToMap(w9.getPoint(), w9);
+        Pawns w10 = new Pawns(false, true, false, new Point(3,2));
+        addPawnToMap(w10.getPoint(), w10);
+        Pawns w11 = new Pawns(false, true, false, new Point(5,2));
+        addPawnToMap(w11.getPoint(), w11);
+        Pawns w12 = new Pawns(false, true, false, new Point(7,2));
+        addPawnToMap(w12.getPoint(), w12);
+
+        Pawns b1 = new Pawns(true, false, false, new Point(0,5));
+        addPawnToMap(b1.getPoint(),b1);
+        Pawns b2 = new Pawns(true, false, false, new Point(2,5));
+        addPawnToMap(b2.getPoint(), b2);
+        Pawns b3 = new Pawns(true, false, false, new Point(4,5));
+        addPawnToMap(b3.getPoint(), b3);
+        Pawns b4 = new Pawns(true, false, false, new Point(6,5));
+        addPawnToMap(b4.getPoint(), b4);
+
+        Pawns b5 = new Pawns(true, false, false, new Point(1,6));
+        addPawnToMap(b5.getPoint(), b5);
+        Pawns b6 = new Pawns(true, false, false, new Point(3,6));
+        addPawnToMap(b6.getPoint(), b6);
+        Pawns b7 = new Pawns(true, false, false, new Point(5,6));
+        addPawnToMap(b7.getPoint(), b7);
+        Pawns b8 = new Pawns(true, false, false, new Point(7,6));
+        addPawnToMap(b8.getPoint(), b8);
+
+        Pawns b9 = new Pawns(true, false, false, new Point(0,7));
+        addPawnToMap(b9.getPoint(), b9);
+        Pawns b10 = new Pawns(true, false, false, new Point(2,7));
+        addPawnToMap(b10.getPoint(), b10);
+        Pawns b11 = new Pawns(true, false, false, new Point(4,7));
+        addPawnToMap(b11.getPoint(),b11);
+        Pawns b12 = new Pawns(true, false, false, new Point(6,7));
+        addPawnToMap(b12.getPoint(), b12);
+    }
 
 
     }
